@@ -1,1 +1,2 @@
-# SML_practical
+# Statistical Machine Learning Group-Assessed Practical
+## 
