@@ -24,7 +24,7 @@ X_val = scalerx.transform(X_val)
 
 # PCA to reduce dimensions
 p_PCA = 25 # from notebook pictures
-pca = PCA(n_components=p_PCA)
+pca = PCA(n_components=p_PCA, random_state=42)
 pca.fit(X_train)
 X_train_pca = pca.transform(X_train)
 X_val_pca = pca.transform(X_val)
@@ -42,5 +42,7 @@ np.savetxt('data/X_train_pca.csv', X_train_pca, delimiter=',')
 np.savetxt('data/X_val_pca.csv', X_val_pca, delimiter=',')
 np.savetxt('data/X_train_lda.csv', X_train_lda, delimiter=',')
 np.savetxt('data/X_val_lda.csv', X_val_lda, delimiter=',')
+np.savetxt('data/y_train.csv', y_train, delimiter=',', fmt='%s')
+np.savetxt('data/y_val.csv', y_val, delimiter=',', fmt='%s')
 
 
