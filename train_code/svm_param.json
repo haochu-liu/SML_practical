@@ -1,0 +1,1 @@
+[{"C": 10, "gamma": "scale", "kernel": "rbf", "val_score": 0.6158333333333333}, {"C": 1, "gamma": "scale", "kernel": "rbf", "val_score": 0.5333333333333333}, {"C": 0.1, "gamma": "scale", "kernel": "rbf", "val_score": 0.5616666666666666}]

@@ -21,7 +21,7 @@ pca_best = grid_search(svm, param_grid, X_train_pca, y_train, X_val_pca, y_val)
 lda_best = grid_search(svm, param_grid, X_train_lda, y_train, X_val_lda, y_val)
 
 sc_pca_lda = [sc_best, pca_best, lda_best]
-with open('train_code/svm.json', 'w') as f:
+with open('train_code/svm_param.json', 'w') as f:
     json.dump(sc_pca_lda, f)
 
 
