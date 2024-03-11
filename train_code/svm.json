@@ -1,0 +1,1 @@
+[{"C": 0.1, "degree": 1, "gamma": "scale", "kernel": "poly", "val_score": 0.5133333333333333}, {"C": 0.1, "degree": 1, "gamma": "auto", "kernel": "poly", "val_score": 0.48}, {"C": 0.1, "degree": 1, "gamma": "auto", "kernel": "poly", "val_score": 0.5416666666666666}]
