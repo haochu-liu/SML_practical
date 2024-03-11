@@ -25,14 +25,22 @@ X_val = scalerx.transform(X_val)
 # PCA to reduce dimensions
 p_PCA = 25 # from notebook pictures
 pca = PCA(n_components=p_PCA)
-pca.fit(X_train_sc)
-Z_pca = pca.transform(X_train_sc)
-X_train_PCA = pd.DataFrame(Z_pca[:, [0, 1, 2]], columns=['PC1', 'PC2', 'PC3'])
-plt.figure()
-sns.pairplot(data=X_train_PCA)
+pca.fit(X_train)
+X_train_pca = pca.transform(X_train)
+X_val_pca = pca.transform(X_val)
+
+# LDA to reduce dimensions
+lda = LinearDiscriminantAnalysis(n_components=None)
+lda.fit(X_train, y_train)
+X_train_lda = lda.transform(X_train)
+X_val_lda = lda.transform(X_val)
 
 # Save the scaled data sets
 np.savetxt('data/X_train_sc.csv', X_train, delimiter=',')
 np.savetxt('data/X_val_sc.csv', X_val, delimiter=',')
+np.savetxt('data/X_train_pca.csv', X_train_pca, delimiter=',')
+np.savetxt('data/X_val_pca.csv', X_val_pca, delimiter=',')
+np.savetxt('data/X_train_lda.csv', X_train_lda, delimiter=',')
+np.savetxt('data/X_val_lda.csv', X_val_lda, delimiter=',')
 
 
