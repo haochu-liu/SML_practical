@@ -1,0 +1,1023 @@
+{
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/haochu-liu/SML_practical/blob/main/knn_new\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "T6P3c8d0ZYiM"
+      },
+      "outputs": [],
+      "source": [
+        "# Import libraries\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "from sklearn.neighbors import KNeighborsClassifier\n",
+        "from sklearn.decomposition import PCA\n",
+        "from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, RandomizedSearchCV\n",
+        "import random\n",
+        "random.seed(123)\n",
+        "from sklearn.pipeline import Pipeline\n",
+        "from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis, LinearDiscriminantAnalysis\n",
+        "from sklearn.preprocessing import StandardScaler"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "Read:\n",
+        "https://www.techscience.com/iasc/v34n3/47913/html\n"
+      ],
+      "metadata": {
+        "id": "7BiEiRG4W53m"
+      }
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "sJmhkgJxiUC4",
+        "outputId": "ee4d7dbe-445b-4ebe-df66-cd03ef05df49"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "<ipython-input-4-4c2798697016>:3: FutureWarning: The squeeze argument has been deprecated and will be removed in a future version. Append .squeeze(\"columns\") to the call to squeeze.\n",
+            "\n",
+            "\n",
+            "  y = pd.read_csv('y_train.csv', index_col = 0, squeeze=True).to_numpy() # outputs of the training set\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Load the training data and the test inputs\n",
+        "X = pd.read_csv('X_train.csv', index_col = 0, header=[0, 1, 2]) # inputs of the training set\n",
+        "y = pd.read_csv('y_train.csv', index_col = 0, squeeze=True).to_numpy() # outputs of the training set\n",
+        "X_test = pd.read_csv('X_test.csv', index_col = 0, header=[0, 1, 2]) # inputs of the test set\n",
+        "X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "dYs1VEi6v2w4",
+        "outputId": "2e9b6fd0-8a8a-4a6a-bd30-3a4c9409bf36"
+      },
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "Electronic 589\n",
+            "Experimental 587\n",
+            "Folk 629\n",
+            "Hip-Hop 601\n",
+            "Instrumental 601\n",
+            "International 598\n",
+            "Pop 594\n",
+            "Rock 601\n"
+          ]
+        }
+      ],
+      "source": [
+        "for i in np.unique(y_train):\n",
+        "    print(i, list(y_train).count(i))\n",
+        "# so we do not need to consider class imbalanaces"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "8i71SJ0yx86k",
+        "outputId": "f8845105-cb55-4c59-9f18-25f407038762"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "array([[ 0.17332673, -6.74845554,  1.20035769, ..., -4.99298111,\n",
+              "        -1.3793308 ,  0.29082656],\n",
+              "       [-1.78567969, -4.73824021, -0.9409046 , ..., -7.16208633,\n",
+              "         0.12207374,  2.51849543],\n",
+              "       [-4.23431512, -6.5695319 ,  2.83995857, ..., -7.3711081 ,\n",
+              "        -1.73886255,  1.38683477],\n",
+              "       ...,\n",
+              "       [-3.48529409, -7.62398749,  3.0242171 , ..., -7.39962503,\n",
+              "        -3.01799707,  0.45390228],\n",
+              "       [-4.24223563, -5.37546238,  0.53585725, ..., -5.47327871,\n",
+              "        -1.00172862,  0.61851824],\n",
+              "       [-2.69062026, -7.84755619,  1.90343903, ..., -5.91578503,\n",
+              "        -1.13550034, -1.70996844]])"
+            ]
+          },
+          "execution_count": 23,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "lda = LinearDiscriminantAnalysis(shrinkage='auto', solver='eigen')\n",
+        "lda.fit(X_train, y_train)\n",
+        "lda.transform(X_train)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "xpVQYTrYCuVR"
+      },
+      "outputs": [],
+      "source": [
+        "accuracies = np.zeros((2, 4))\n",
+        "\n",
+        "for n_comps in range(4, 8):\n",
+        "\n",
+        "    # Initialize variables to store results\n",
+        "    best_k = None\n",
+        "    best_accuracy = 0\n",
+        "\n",
+        "    for k in [2, 5, 10, 25, 50, 75, 100, 200]:\n",
+        "\n",
+        "        pipeline = Pipeline([('lda', LinearDiscriminantAnalysis(n_components=n_comps)),\n",
+        "                             ('knn', KNeighborsClassifier(n_neighbors=k))])\n",
+        "\n",
+        "        # Use cross-validation to evaluate the accuracy\n",
+        "        accuracy_scores = cross_val_score(pipeline, X_train, y_train, cv=10, scoring='accuracy')\n",
+        "\n",
+        "        # Calculate the average accuracy\n",
+        "        avg_accuracy = np.mean(accuracy_scores)\n",
+        "\n",
+        "        # Update the best k if the current one is better\n",
+        "        if avg_accuracy > best_accuracy:\n",
+        "            best_k = k\n",
+        "            best_accuracy = avg_accuracy\n",
+        "\n",
+        "        lda = LinearDiscriminantAnalysis(n_components=n_comps)\n",
+        "        lda.fit(X_train, y_train)\n",
+        "        X_train_lda = lda.transform(X_train)\n",
+        "        X_val_lda = lda.transform(X_val)\n",
+        "\n",
+        "        best_knn_model = KNeighborsClassifier(n_neighbors=best_k)\n",
+        "        best_knn_model.fit(X_train_lda, y_train)\n",
+        "        accuracy_val = best_knn_model.score(X_val_lda, y_val)\n",
+        "        accuracies[0, n_comps-4] = best_k\n",
+        "        accuracies[1, n_comps-4] = accuracy_val"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "KbJABT9IDn4e",
+        "outputId": "499346b5-d0d0-45a9-ae69-8f2f1c1f579e"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([[50.        , 50.        , 75.        , 50.        ],\n",
+              "       [ 0.495     ,  0.53583333,  0.55      ,  0.55833333]])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 32
+        }
+      ],
+      "source": [
+        "accuracies"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "accuracies_ss = np.zeros((2, 4))\n",
+        "\n",
+        "for n_comps in range(4, 8):\n",
+        "\n",
+        "    # Initialize variables to store results\n",
+        "    best_k = None\n",
+        "    best_accuracy = 0\n",
+        "\n",
+        "    for k in [2, 5, 10, 25, 50, 75, 100, 200]:\n",
+        "\n",
+        "        pipeline = Pipeline([('lda', LinearDiscriminantAnalysis(n_components=n_comps)),\n",
+        "                             ('ss', StandardScaler()),\n",
+        "                             ('knn', KNeighborsClassifier(n_neighbors=k))])\n",
+        "\n",
+        "        # Use cross-validation to evaluate the accuracy\n",
+        "        accuracy_scores = cross_val_score(pipeline, X_train, y_train, cv=10, scoring='accuracy')\n",
+        "\n",
+        "        # Calculate the average accuracy\n",
+        "        avg_accuracy = np.mean(accuracy_scores)\n",
+        "\n",
+        "        # Update the best k if the current one is better\n",
+        "        if avg_accuracy > best_accuracy:\n",
+        "            best_k = k\n",
+        "            best_accuracy = avg_accuracy\n",
+        "\n",
+        "        lda = LinearDiscriminantAnalysis(n_components=n_comps)\n",
+        "        lda.fit(X_train, y_train)\n",
+        "        X_train_lda = lda.transform(X_train)\n",
+        "        X_val_lda = lda.transform(X_val)\n",
+        "\n",
+        "        best_knn_model = KNeighborsClassifier(n_neighbors=best_k)\n",
+        "        best_knn_model.fit(X_train_lda, y_train)\n",
+        "        accuracy_val = best_knn_model.score(X_val_lda, y_val)\n",
+        "        accuracies_ss[0, n_comps-4] = best_k\n",
+        "        accuracies_ss[1, n_comps-4] = accuracy_val"
+      ],
+      "metadata": {
+        "id": "XL5k7YIHMB_c"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "accuracies_ss"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "vzTkDeFcNSwz",
+        "outputId": "aa3cbe0a-96a5-46b9-e504-9f48186674dc"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([[ 75.        , 200.        ,  50.        ,  75.        ],\n",
+              "       [  0.49833333,   0.53916667,   0.56166667,   0.56166667]])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 34
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "R6ncj33M7ra3"
+      },
+      "outputs": [],
+      "source": [
+        "accuracies_shrinkage = np.zeros((2, 4))\n",
+        "\n",
+        "for n_comps in range(4, 8):\n",
+        "\n",
+        "    # Initialize variables to store results\n",
+        "    best_k = None\n",
+        "    best_accuracy = 0\n",
+        "\n",
+        "    for k in [2, 5, 10, 25, 50, 75, 100, 200]:\n",
+        "\n",
+        "        pipeline = Pipeline([('lda', LinearDiscriminantAnalysis(n_components=n_comps,\n",
+        "                                                                solver='eigen', shrinkage='auto')),\n",
+        "                             ('knn', KNeighborsClassifier(n_neighbors=k))])\n",
+        "\n",
+        "        # Use cross-validation to evaluate the accuracy\n",
+        "        accuracy_scores = cross_val_score(pipeline, X_train, y_train, cv=10, scoring='accuracy')\n",
+        "\n",
+        "        # Calculate the average accuracy\n",
+        "        avg_accuracy = np.mean(accuracy_scores)\n",
+        "\n",
+        "        # Update the best k if the current one is better\n",
+        "        if avg_accuracy > best_accuracy:\n",
+        "            best_k = k\n",
+        "            best_accuracy = avg_accuracy\n",
+        "\n",
+        "        lda = LinearDiscriminantAnalysis(n_components=n_comps, solver='eigen', shrinkage='auto')\n",
+        "        lda.fit(X_train, y_train)\n",
+        "        X_train_lda = lda.transform(X_train)\n",
+        "        X_val_lda = lda.transform(X_val)\n",
+        "\n",
+        "        best_knn_model = KNeighborsClassifier(n_neighbors=best_k)\n",
+        "        best_knn_model.fit(X_train_lda, y_train)\n",
+        "        accuracy_val = best_knn_model.score(X_val_lda, y_val)\n",
+        "        accuracies_shrinkage[0, n_comps-4] = best_k\n",
+        "        accuracies_shrinkage[1, n_comps-4] = accuracy_val"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "qqL2FYocPG81",
+        "outputId": "09e7c01f-16a2-4ed2-d526-d8545ea88b42"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([[ 75.        ,  50.        , 100.        ,  25.        ],\n",
+              "       [  0.51583333,   0.52583333,   0.545     ,   0.56083333]])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 17
+        }
+      ],
+      "source": [
+        "accuracies_shrinkage"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "accuracies_shrinkage_ss = np.zeros((2, 4))\n",
+        "\n",
+        "for n_comps in range(4, 8):\n",
+        "\n",
+        "    # Initialize variables to store results\n",
+        "    best_k = None\n",
+        "    best_accuracy = 0\n",
+        "\n",
+        "    for k in [2, 5, 10, 25, 50, 75, 100, 200]:\n",
+        "\n",
+        "        pipeline = Pipeline([('lda', LinearDiscriminantAnalysis(n_components=n_comps,\n",
+        "                                                                solver='eigen', shrinkage='auto')),\n",
+        "                             ('ss', StandardScaler()),\n",
+        "                             ('knn', KNeighborsClassifier(n_neighbors=k))])\n",
+        "\n",
+        "        # Use cross-validation to evaluate the accuracy\n",
+        "        accuracy_scores = cross_val_score(pipeline, X_train, y_train, cv=10, scoring='accuracy')\n",
+        "\n",
+        "        # Calculate the average accuracy\n",
+        "        avg_accuracy = np.mean(accuracy_scores)\n",
+        "\n",
+        "        # Update the best k if the current one is better\n",
+        "        if avg_accuracy > best_accuracy:\n",
+        "            best_k = k\n",
+        "            best_accuracy = avg_accuracy\n",
+        "\n",
+        "        lda = LinearDiscriminantAnalysis(n_components=n_comps, solver='eigen', shrinkage='auto')\n",
+        "        lda.fit(X_train, y_train)\n",
+        "        X_train_lda = lda.transform(X_train)\n",
+        "        X_val_lda = lda.transform(X_val)\n",
+        "\n",
+        "        best_knn_model = KNeighborsClassifier(n_neighbors=best_k)\n",
+        "        best_knn_model.fit(X_train_lda, y_train)\n",
+        "        accuracy_val = best_knn_model.score(X_val_lda, y_val)\n",
+        "        accuracies_shrinkage_ss[0, n_comps-4] = best_k\n",
+        "        accuracies_shrinkage_ss[1, n_comps-4] = accuracy_val"
+      ],
+      "metadata": {
+        "id": "IGgwEIfDI2Dc"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "accuracies_shrinkage_ss"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "8w21ZB2fL5MD",
+        "outputId": "9ed74a03-be97-4a03-eb56-da30b60dfbde"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([[100.        ,  25.        ,  50.        ,  50.        ],\n",
+              "       [  0.51666667,   0.5225    ,   0.54833333,   0.56666667]])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 28
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## Random forests"
+      ],
+      "metadata": {
+        "id": "o-Gv4gGZWJm5"
+      }
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "1sjfgVnw_K2X",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "f1f809f9-493c-4977-a027-a017000e0737"
+      },
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([1.37165705e-03, 1.48410138e-03, 1.46189047e-03, 1.50502697e-03,\n",
+              "       1.38550051e-03, 1.81272278e-03, 1.34177172e-03, 1.58901102e-03,\n",
+              "       1.36988232e-03, 1.49131188e-03, 1.37890495e-03, 1.43901323e-03,\n",
+              "       1.62809879e-03, 1.62065054e-03, 1.46821659e-03, 1.39334862e-03,\n",
+              "       1.69158984e-03, 1.68137866e-03, 1.85347509e-03, 1.36731015e-03,\n",
+              "       1.45761181e-03, 2.01067020e-03, 1.35834787e-03, 1.75424013e-03,\n",
+              "       1.26388664e-03, 1.34778615e-03, 1.39347491e-03, 1.31917355e-03,\n",
+              "       1.12518519e-03, 1.12396067e-03, 1.33590560e-03, 1.05959575e-03,\n",
+              "       1.30536667e-03, 1.36193170e-03, 1.50200205e-03, 1.19518401e-03,\n",
+              "       1.28413696e-03, 1.24849413e-03, 1.54998732e-03, 1.31637967e-03,\n",
+              "       1.36470953e-03, 1.33395987e-03, 1.37332878e-03, 1.22432872e-03,\n",
+              "       1.37615275e-03, 1.41854487e-03, 1.38922863e-03, 1.29565118e-03,\n",
+              "       3.19797753e-04, 3.76864232e-04, 3.00112817e-04, 2.37338633e-04,\n",
+              "       3.03957714e-04, 2.96584587e-04, 3.78301642e-04, 4.25635567e-04,\n",
+              "       3.85653549e-04, 3.04785259e-04, 3.22849377e-04, 3.05856691e-04,\n",
+              "       1.60573165e-03, 1.14826005e-03, 1.28550263e-03, 1.51626156e-03,\n",
+              "       1.37602933e-03, 1.65042495e-03, 1.26701250e-03, 1.43248911e-03,\n",
+              "       1.36114342e-03, 1.52561859e-03, 1.24935415e-03, 1.34541048e-03,\n",
+              "       1.39463513e-03, 1.56556688e-03, 1.77828259e-03, 1.48400952e-03,\n",
+              "       1.83068018e-03, 1.78584199e-03, 1.61316321e-03, 1.35310721e-03,\n",
+              "       1.67210480e-03, 1.57959918e-03, 1.43778605e-03, 1.70344962e-03,\n",
+              "       2.02648067e-03, 1.44650453e-03, 1.49541687e-03, 1.43141852e-03,\n",
+              "       1.33607823e-03, 1.81971644e-03, 1.45534586e-03, 1.26038986e-03,\n",
+              "       1.62268902e-03, 1.32670386e-03, 1.38360017e-03, 1.38416545e-03,\n",
+              "       0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 2.00682980e-05,\n",
+              "       0.00000000e+00, 6.35172577e-06, 0.00000000e+00, 6.68815630e-06,\n",
+              "       1.12801714e-05, 0.00000000e+00, 6.35301753e-06, 1.37619879e-05,\n",
+              "       1.51293942e-03, 1.65511973e-03, 1.45419954e-03, 1.37309240e-03,\n",
+              "       1.43750111e-03, 1.33365437e-03, 1.33889830e-03, 1.50662878e-03,\n",
+              "       1.40286846e-03, 1.32033038e-03, 1.34540496e-03, 1.28894887e-03,\n",
+              "       1.55569392e-03, 1.67073577e-03, 1.37485694e-03, 1.43267461e-03,\n",
+              "       1.36436340e-03, 1.35422025e-03, 1.54134299e-03, 1.25361811e-03,\n",
+              "       1.57385310e-03, 1.47218102e-03, 1.37466589e-03, 1.39515636e-03,\n",
+              "       1.13768387e-03, 1.30085556e-03, 1.40806801e-03, 1.23490584e-03,\n",
+              "       1.14462821e-03, 1.06850115e-03, 1.14857439e-03, 1.20273690e-03,\n",
+              "       1.14741008e-03, 1.17830926e-03, 1.31442311e-03, 1.07360118e-03,\n",
+              "       1.33843843e-03, 1.51797118e-03, 1.32951118e-03, 1.42181054e-03,\n",
+              "       1.45964094e-03, 1.44623827e-03, 1.44037946e-03, 1.30918826e-03,\n",
+              "       1.51125013e-03, 1.43268578e-03, 1.40908326e-03, 1.16447929e-03,\n",
+              "       1.67362639e-03, 1.55327943e-03, 1.58545272e-03, 1.49932801e-03,\n",
+              "       1.43028563e-03, 1.61175814e-03, 1.56743968e-03, 1.37894242e-03,\n",
+              "       1.46531056e-03, 1.73073481e-03, 1.45967824e-03, 1.39741926e-03,\n",
+              "       1.63992371e-03, 1.65238154e-03, 1.31142432e-03, 1.52139293e-03,\n",
+              "       1.51751765e-03, 1.62498520e-03, 1.32395133e-03, 1.19991637e-03,\n",
+              "       1.83480075e-03, 1.34049085e-03, 1.94788336e-03, 1.65979044e-03,\n",
+              "       0.00000000e+00, 2.38187418e-06, 0.00000000e+00, 0.00000000e+00,\n",
+              "       0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,\n",
+              "       0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,\n",
+              "       1.85159761e-03, 2.01948486e-03, 1.65272103e-03, 2.03785366e-03,\n",
+              "       2.06632172e-03, 1.61360707e-03, 1.56867192e-03, 1.45763704e-03,\n",
+              "       1.58268909e-03, 1.53203287e-03, 2.14237139e-03, 1.60382972e-03,\n",
+              "       2.57275268e-03, 1.91836104e-03, 1.90527412e-03, 2.08598604e-03,\n",
+              "       2.29133497e-03, 2.03928946e-03, 1.61307380e-03, 1.47840362e-03,\n",
+              "       1.68120783e-03, 1.73546492e-03, 2.52952996e-03, 1.57857514e-03,\n",
+              "       9.22716782e-04, 9.74262517e-04, 1.15960251e-03, 1.04550211e-03,\n",
+              "       9.90499570e-04, 1.14457538e-03, 1.08165179e-03, 1.13784038e-03,\n",
+              "       9.12373388e-04, 1.12890036e-03, 1.01562280e-03, 8.98680984e-04,\n",
+              "       2.08587555e-03, 2.81299034e-03, 1.80479604e-03, 2.47696649e-03,\n",
+              "       2.19892903e-03, 1.94233460e-03, 1.74138163e-03, 1.66715298e-03,\n",
+              "       1.93148422e-03, 1.33209522e-03, 2.19260926e-03, 1.85564434e-03,\n",
+              "       1.79583545e-03, 1.72395820e-03, 1.48536803e-03, 1.89182712e-03,\n",
+              "       1.31234796e-03, 1.62470191e-03, 1.56777345e-03, 1.61308823e-03,\n",
+              "       1.79012834e-03, 1.84210012e-03, 2.35895109e-03, 1.45712579e-03,\n",
+              "       2.16555508e-03, 1.88268511e-03, 1.73188254e-03, 3.48962539e-03,\n",
+              "       2.19937507e-03, 1.95224593e-03, 1.54848077e-03, 1.75582527e-03,\n",
+              "       1.57870242e-03, 1.74621279e-03, 1.46186441e-03, 1.65045892e-03,\n",
+              "       1.40567874e-03, 1.56109124e-03, 1.86272016e-03, 1.93619336e-03,\n",
+              "       1.74182911e-03, 1.68180034e-03, 1.62429685e-03, 1.91876662e-03,\n",
+              "       4.26970229e-03, 3.34642568e-03, 2.40520115e-03, 6.01851789e-03,\n",
+              "       1.93624325e-03, 3.63823120e-03, 1.82609133e-03, 1.88523176e-03,\n",
+              "       1.98121837e-03, 2.55011937e-03, 1.87502830e-03, 2.49065511e-03,\n",
+              "       2.34943084e-03, 2.30438915e-03, 2.05543878e-03, 2.77342680e-03,\n",
+              "       2.56333692e-03, 2.15599067e-03, 2.00414654e-03, 2.00747074e-03,\n",
+              "       5.15929900e-03, 3.98533703e-03, 6.45349027e-03, 2.24518405e-03,\n",
+              "       2.35901115e-03, 2.41583466e-03, 1.92887008e-03, 1.64608630e-03,\n",
+              "       2.01870787e-03, 2.15348591e-03, 1.77492115e-03, 3.39232253e-03,\n",
+              "       1.90467538e-03, 2.58881226e-03, 2.05900508e-03, 3.94590748e-03,\n",
+              "       2.20869453e-03, 2.83118475e-03, 2.84840728e-03, 3.17451198e-03,\n",
+              "       4.74414858e-03, 3.53869544e-03, 6.14068699e-03, 2.14729646e-03,\n",
+              "       2.11142088e-03, 2.31581545e-03, 2.25296000e-03, 1.65933947e-03,\n",
+              "       1.47210269e-03, 3.18194627e-03, 1.56606249e-03, 2.73778336e-03,\n",
+              "       1.74466666e-03, 2.80797034e-03, 2.06489952e-03, 3.67313524e-03,\n",
+              "       1.98810803e-03, 2.96910763e-03, 2.61445578e-03, 2.88569211e-03,\n",
+              "       2.50424952e-03, 1.46723220e-03, 2.47497588e-03, 2.24300114e-03,\n",
+              "       4.27121512e-03, 2.17060860e-03, 2.62588753e-03, 1.76627674e-03,\n",
+              "       1.69465938e-03, 1.94337319e-03, 1.61241346e-03, 1.49779139e-03,\n",
+              "       1.37356588e-03, 1.65223113e-03, 1.80164509e-03, 1.72648396e-03,\n",
+              "       2.05804861e-03, 1.71001191e-03, 2.22804713e-03, 2.31396883e-03,\n",
+              "       3.63861516e-03, 2.34752298e-03, 3.10018793e-03, 3.50185705e-03,\n",
+              "       2.69342815e-03, 2.21189400e-03, 2.72623908e-03, 1.54465014e-03,\n",
+              "       1.64261781e-03, 1.90533931e-03, 1.34288923e-03, 1.78273997e-03,\n",
+              "       1.64114191e-03, 1.64776505e-03, 1.51786352e-03, 1.42309897e-03,\n",
+              "       1.98234238e-03, 1.57784172e-03, 1.88422763e-03, 1.81752606e-03,\n",
+              "       3.07224921e-03, 4.90368221e-03, 2.00438851e-03, 3.07764997e-03,\n",
+              "       2.52977425e-03, 3.56579010e-03, 3.17291042e-03, 3.15440715e-03,\n",
+              "       2.84376821e-03, 2.24567468e-03, 3.02282421e-03, 2.66966861e-03,\n",
+              "       3.13953720e-03, 3.22129289e-03, 3.30357032e-03, 2.78181521e-03,\n",
+              "       3.78509681e-03, 2.94046371e-03, 3.15345897e-03, 2.84232181e-03,\n",
+              "       2.00748684e-03, 2.37317029e-03, 3.35401598e-03, 2.47007427e-03,\n",
+              "       1.42904136e-03, 2.41145736e-03, 4.77395815e-03, 1.97968432e-03,\n",
+              "       1.74805851e-03, 4.95346707e-03, 5.26247460e-03, 2.07109098e-03,\n",
+              "       3.16695427e-03, 2.62007618e-03, 2.75775566e-03, 1.77420290e-03,\n",
+              "       3.74474193e-03, 7.23510156e-03, 1.25991279e-03, 3.39735277e-03,\n",
+              "       4.09058461e-03, 2.45487750e-03, 2.48433745e-03, 2.77128371e-03,\n",
+              "       2.99597395e-03, 2.00151261e-03, 1.56051213e-03, 1.81808617e-03,\n",
+              "       2.43106316e-03, 1.64192602e-03, 1.79444352e-03, 2.30146723e-03,\n",
+              "       1.67476298e-03, 2.07635688e-03, 4.13552804e-03, 2.49662703e-03,\n",
+              "       4.06959835e-03, 4.37012709e-03, 6.05477480e-03, 2.73402932e-03,\n",
+              "       2.26694411e-03, 5.39146611e-03, 2.50431788e-03, 4.55577390e-03,\n",
+              "       4.89525175e-03, 6.88870733e-03, 4.03961619e-03, 2.17150451e-03,\n",
+              "       4.65762562e-03, 1.71245793e-03, 1.83594501e-03, 2.25109317e-03,\n",
+              "       2.03237943e-03, 2.08815080e-03, 2.09305209e-03, 2.12388806e-03,\n",
+              "       1.83418871e-03, 3.58573824e-03, 2.56572943e-03, 3.01290173e-03,\n",
+              "       1.89194042e-03, 1.59771702e-03, 1.81236952e-03, 2.84070345e-03,\n",
+              "       2.00809123e-03, 3.45482980e-03, 3.96388991e-03, 1.83386497e-03,\n",
+              "       2.47277848e-03, 3.51679367e-03, 2.80988720e-03, 1.94723814e-03,\n",
+              "       5.58067627e-03, 5.37271227e-03, 1.30119372e-03, 4.80591035e-03,\n",
+              "       2.93929418e-03, 1.50968334e-03, 1.47069894e-03, 1.71334498e-03,\n",
+              "       1.44686865e-03, 1.57228333e-03, 1.58802247e-03, 1.83758492e-03,\n",
+              "       1.71437324e-03, 1.62877616e-03, 1.69573918e-03, 2.10715005e-03,\n",
+              "       1.77594867e-03, 1.31627754e-03, 1.60880246e-03, 1.33461127e-03,\n",
+              "       1.48146747e-03, 1.26279719e-03, 1.39448973e-03, 1.43294474e-03,\n",
+              "       1.66453270e-03, 1.42487174e-03, 1.40041624e-03, 1.43486532e-03,\n",
+              "       1.35840971e-03, 1.71197849e-03, 1.96206268e-03, 1.76371794e-03,\n",
+              "       1.51061723e-03, 1.70016553e-03, 1.62928854e-03, 1.46693349e-03,\n",
+              "       1.36819705e-03, 1.60277156e-03, 1.21588786e-03, 1.41383044e-03,\n",
+              "       1.48073983e-03, 3.29500274e-03, 3.81217511e-03, 2.83457158e-03,\n",
+              "       2.40714710e-03, 3.60317557e-03, 3.27474616e-03, 1.78994666e-03,\n",
+              "       1.70743025e-03, 3.92027820e-03, 4.39249984e-03, 2.96096090e-03,\n",
+              "       2.02738908e-03, 2.75601820e-03])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 35
+        }
+      ],
+      "source": [
+        "from sklearn.ensemble import RandomForestClassifier\n",
+        "\n",
+        "rfc = RandomForestClassifier()\n",
+        "rfc.fit(X_train, y_train)\n",
+        "rfc.score(X_val, y_val)\n",
+        "rfc.feature_importances_"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 339
+        },
+        "id": "koTQMthOHiWw",
+        "outputId": "6e35e918-ce18-488f-ed40-4a376e6ae6b0"
+      },
+      "outputs": [
+        {
+          "output_type": "error",
+          "ename": "KeyboardInterrupt",
+          "evalue": "",
+          "traceback": [
+            "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
+            "\u001b[0;31mKeyboardInterrupt\u001b[0m                         Traceback (most recent call last)",
+            "\u001b[0;32m<ipython-input-36-2438886318f3>\u001b[0m in \u001b[0;36m<cell line: 5>\u001b[0;34m()\u001b[0m\n\u001b[1;32m      3\u001b[0m \u001b[0mrfc\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mRandomForestClassifier\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0mclf\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mGridSearchCV\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mrfc\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mparameters\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mscoring\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;34m'accuracy'\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m----> 5\u001b[0;31m \u001b[0mclf\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mfit\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mX_train\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my_train\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/model_selection/_search.py\u001b[0m in \u001b[0;36mfit\u001b[0;34m(self, X, y, groups, **fit_params)\u001b[0m\n\u001b[1;32m    872\u001b[0m                 \u001b[0;32mreturn\u001b[0m \u001b[0mresults\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    873\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 874\u001b[0;31m             \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_run_search\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mevaluate_candidates\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    875\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    876\u001b[0m             \u001b[0;31m# multimetric is determined here because in the case of a callable\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/model_selection/_search.py\u001b[0m in \u001b[0;36m_run_search\u001b[0;34m(self, evaluate_candidates)\u001b[0m\n\u001b[1;32m   1386\u001b[0m     \u001b[0;32mdef\u001b[0m \u001b[0m_run_search\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mevaluate_candidates\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1387\u001b[0m         \u001b[0;34m\"\"\"Search all candidates in param_grid\"\"\"\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 1388\u001b[0;31m         \u001b[0mevaluate_candidates\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mParameterGrid\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mparam_grid\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   1389\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1390\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/model_selection/_search.py\u001b[0m in \u001b[0;36mevaluate_candidates\u001b[0;34m(candidate_params, cv, more_results)\u001b[0m\n\u001b[1;32m    819\u001b[0m                     )\n\u001b[1;32m    820\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 821\u001b[0;31m                 out = parallel(\n\u001b[0m\u001b[1;32m    822\u001b[0m                     delayed(_fit_and_score)(\n\u001b[1;32m    823\u001b[0m                         \u001b[0mclone\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mbase_estimator\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/utils/parallel.py\u001b[0m in \u001b[0;36m__call__\u001b[0;34m(self, iterable)\u001b[0m\n\u001b[1;32m     61\u001b[0m             \u001b[0;32mfor\u001b[0m \u001b[0mdelayed_func\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0margs\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mkwargs\u001b[0m \u001b[0;32min\u001b[0m \u001b[0miterable\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     62\u001b[0m         )\n\u001b[0;32m---> 63\u001b[0;31m         \u001b[0;32mreturn\u001b[0m \u001b[0msuper\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m__call__\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0miterable_with_config\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     64\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     65\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/joblib/parallel.py\u001b[0m in \u001b[0;36m__call__\u001b[0;34m(self, iterable)\u001b[0m\n\u001b[1;32m   1861\u001b[0m             \u001b[0moutput\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_get_sequential_output\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0miterable\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1862\u001b[0m             \u001b[0mnext\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0moutput\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 1863\u001b[0;31m             \u001b[0;32mreturn\u001b[0m \u001b[0moutput\u001b[0m \u001b[0;32mif\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mreturn_generator\u001b[0m \u001b[0;32melse\u001b[0m \u001b[0mlist\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0moutput\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   1864\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1865\u001b[0m         \u001b[0;31m# Let's create an ID that uniquely identifies the current call. If the\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/joblib/parallel.py\u001b[0m in \u001b[0;36m_get_sequential_output\u001b[0;34m(self, iterable)\u001b[0m\n\u001b[1;32m   1790\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mn_dispatched_batches\u001b[0m \u001b[0;34m+=\u001b[0m \u001b[0;36m1\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1791\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mn_dispatched_tasks\u001b[0m \u001b[0;34m+=\u001b[0m \u001b[0;36m1\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 1792\u001b[0;31m                 \u001b[0mres\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mfunc\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m*\u001b[0m\u001b[0margs\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mkwargs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   1793\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mn_completed_tasks\u001b[0m \u001b[0;34m+=\u001b[0m \u001b[0;36m1\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1794\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mprint_progress\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/utils/parallel.py\u001b[0m in \u001b[0;36m__call__\u001b[0;34m(self, *args, **kwargs)\u001b[0m\n\u001b[1;32m    121\u001b[0m             \u001b[0mconfig\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;34m{\u001b[0m\u001b[0;34m}\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    122\u001b[0m         \u001b[0;32mwith\u001b[0m \u001b[0mconfig_context\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m**\u001b[0m\u001b[0mconfig\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 123\u001b[0;31m             \u001b[0;32mreturn\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mfunction\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m*\u001b[0m\u001b[0margs\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mkwargs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/model_selection/_validation.py\u001b[0m in \u001b[0;36m_fit_and_score\u001b[0;34m(estimator, X, y, scorer, train, test, verbose, parameters, fit_params, return_train_score, return_parameters, return_n_test_samples, return_times, return_estimator, split_progress, candidate_progress, error_score)\u001b[0m\n\u001b[1;32m    684\u001b[0m             \u001b[0mestimator\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mfit\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mX_train\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mfit_params\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    685\u001b[0m         \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 686\u001b[0;31m             \u001b[0mestimator\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mfit\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mX_train\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my_train\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mfit_params\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    687\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    688\u001b[0m     \u001b[0;32mexcept\u001b[0m \u001b[0mException\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/ensemble/_forest.py\u001b[0m in \u001b[0;36mfit\u001b[0;34m(self, X, y, sample_weight)\u001b[0m\n\u001b[1;32m    471\u001b[0m             \u001b[0;31m# parallel_backend contexts set at a higher level,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    472\u001b[0m             \u001b[0;31m# since correctness does not rely on using threads.\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 473\u001b[0;31m             trees = Parallel(\n\u001b[0m\u001b[1;32m    474\u001b[0m                 \u001b[0mn_jobs\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mn_jobs\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    475\u001b[0m                 \u001b[0mverbose\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mverbose\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/utils/parallel.py\u001b[0m in \u001b[0;36m__call__\u001b[0;34m(self, iterable)\u001b[0m\n\u001b[1;32m     61\u001b[0m             \u001b[0;32mfor\u001b[0m \u001b[0mdelayed_func\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0margs\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mkwargs\u001b[0m \u001b[0;32min\u001b[0m \u001b[0miterable\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     62\u001b[0m         )\n\u001b[0;32m---> 63\u001b[0;31m         \u001b[0;32mreturn\u001b[0m \u001b[0msuper\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m__call__\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0miterable_with_config\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m     64\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m     65\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/joblib/parallel.py\u001b[0m in \u001b[0;36m__call__\u001b[0;34m(self, iterable)\u001b[0m\n\u001b[1;32m   1861\u001b[0m             \u001b[0moutput\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0m_get_sequential_output\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0miterable\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1862\u001b[0m             \u001b[0mnext\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0moutput\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 1863\u001b[0;31m             \u001b[0;32mreturn\u001b[0m \u001b[0moutput\u001b[0m \u001b[0;32mif\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mreturn_generator\u001b[0m \u001b[0;32melse\u001b[0m \u001b[0mlist\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0moutput\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   1864\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1865\u001b[0m         \u001b[0;31m# Let's create an ID that uniquely identifies the current call. If the\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/joblib/parallel.py\u001b[0m in \u001b[0;36m_get_sequential_output\u001b[0;34m(self, iterable)\u001b[0m\n\u001b[1;32m   1790\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mn_dispatched_batches\u001b[0m \u001b[0;34m+=\u001b[0m \u001b[0;36m1\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1791\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mn_dispatched_tasks\u001b[0m \u001b[0;34m+=\u001b[0m \u001b[0;36m1\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m-> 1792\u001b[0;31m                 \u001b[0mres\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mfunc\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m*\u001b[0m\u001b[0margs\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mkwargs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m   1793\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mn_completed_tasks\u001b[0m \u001b[0;34m+=\u001b[0m \u001b[0;36m1\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m   1794\u001b[0m                 \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mprint_progress\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/utils/parallel.py\u001b[0m in \u001b[0;36m__call__\u001b[0;34m(self, *args, **kwargs)\u001b[0m\n\u001b[1;32m    121\u001b[0m             \u001b[0mconfig\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0;34m{\u001b[0m\u001b[0;34m}\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    122\u001b[0m         \u001b[0;32mwith\u001b[0m \u001b[0mconfig_context\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m**\u001b[0m\u001b[0mconfig\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 123\u001b[0;31m             \u001b[0;32mreturn\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mfunction\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m*\u001b[0m\u001b[0margs\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;34m**\u001b[0m\u001b[0mkwargs\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/ensemble/_forest.py\u001b[0m in \u001b[0;36m_parallel_build_trees\u001b[0;34m(tree, bootstrap, X, y, sample_weight, tree_idx, n_trees, verbose, class_weight, n_samples_bootstrap)\u001b[0m\n\u001b[1;32m    182\u001b[0m             \u001b[0mcurr_sample_weight\u001b[0m \u001b[0;34m*=\u001b[0m \u001b[0mcompute_sample_weight\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m\"balanced\"\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mindices\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mindices\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    183\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 184\u001b[0;31m         \u001b[0mtree\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mfit\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mX\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0msample_weight\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0mcurr_sample_weight\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcheck_input\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mFalse\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    185\u001b[0m     \u001b[0;32melse\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    186\u001b[0m         \u001b[0mtree\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mfit\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mX\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0msample_weight\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0msample_weight\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mcheck_input\u001b[0m\u001b[0;34m=\u001b[0m\u001b[0;32mFalse\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/tree/_classes.py\u001b[0m in \u001b[0;36mfit\u001b[0;34m(self, X, y, sample_weight, check_input)\u001b[0m\n\u001b[1;32m    887\u001b[0m         \"\"\"\n\u001b[1;32m    888\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 889\u001b[0;31m         super().fit(\n\u001b[0m\u001b[1;32m    890\u001b[0m             \u001b[0mX\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    891\u001b[0m             \u001b[0my\u001b[0m\u001b[0;34m,\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;32m/usr/local/lib/python3.10/dist-packages/sklearn/tree/_classes.py\u001b[0m in \u001b[0;36mfit\u001b[0;34m(self, X, y, sample_weight, check_input)\u001b[0m\n\u001b[1;32m    377\u001b[0m             )\n\u001b[1;32m    378\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0;32m--> 379\u001b[0;31m         \u001b[0mbuilder\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mbuild\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mtree_\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mX\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0my\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0msample_weight\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m    380\u001b[0m \u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m    381\u001b[0m         \u001b[0;32mif\u001b[0m \u001b[0mself\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mn_outputs_\u001b[0m \u001b[0;34m==\u001b[0m \u001b[0;36m1\u001b[0m \u001b[0;32mand\u001b[0m \u001b[0mis_classifier\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mself\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+            "\u001b[0;31mKeyboardInterrupt\u001b[0m: "
+          ]
+        }
+      ],
+      "source": [
+        "parameters = {'criterion':('gini', 'entropy'), 'max_depth':[3, 5, 10, 15, 20, 30],\n",
+        "              'n_estimators':[10, 20, 50, 100]}\n",
+        "rfc = RandomForestClassifier()\n",
+        "clf = GridSearchCV(rfc, parameters, scoring='accuracy')\n",
+        "clf.fit(X_train, y_train)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "wmwzCVmqguqx",
+        "outputId": "207ad1eb-7792-45f8-89f8-e1e7e7afca0a"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "{'mean_fit_time': array([ 0.37055106,  0.49494667,  1.20411673,  2.55913854,  0.42761245,\n",
+              "         0.86511593,  1.97086382,  3.98510571,  0.65059638,  1.64659743,\n",
+              "         3.33570046,  6.84950275,  0.75409489,  1.67851591,  3.90241494,\n",
+              "         7.98461919,  0.91048298,  1.55698519,  4.33665285,  8.13017793,\n",
+              "         0.952279  ,  1.54831161,  4.1608501 ,  8.08017507,  0.55194659,\n",
+              "         1.65818686,  3.18819466,  7.17831826,  0.86939788,  1.91473432,\n",
+              "         4.74032159,  9.59793534,  1.66701674,  3.05503016,  7.94847608,\n",
+              "        20.19301567,  3.05977216,  5.89507766,  8.40358939, 16.60135746,\n",
+              "         1.63186173,  3.32061038,  8.34485083, 16.54353929,  1.73010945,\n",
+              "         3.25574822,  8.6101944 , 16.33764081]),\n",
+              " 'std_fit_time': array([0.00799471, 0.01225048, 0.00920781, 0.2118279 , 0.05903378,\n",
+              "        0.13843243, 0.24886726, 0.27190159, 0.01158677, 0.28911795,\n",
+              "        0.34299999, 0.41276037, 0.00828237, 0.2276394 , 0.31975736,\n",
+              "        0.37004542, 0.16265085, 0.03307302, 0.4119095 , 0.43880728,\n",
+              "        0.13210326, 0.01058666, 0.32169104, 0.34330833, 0.0131479 ,\n",
+              "        0.48426252, 0.62428197, 1.38478433, 0.00768006, 0.27149878,\n",
+              "        0.41781188, 0.87027476, 0.28469411, 0.34204931, 0.47985789,\n",
+              "        5.13982368, 0.61619751, 0.63348895, 0.63760405, 0.54265788,\n",
+              "        0.21137344, 0.28252517, 0.66450406, 0.30661652, 0.2784034 ,\n",
+              "        0.36449953, 0.66270116, 0.28171043]),\n",
+              " 'mean_score_time': array([0.01617055, 0.01112089, 0.01511025, 0.02458882, 0.01239696,\n",
+              "        0.01456032, 0.01915536, 0.02678919, 0.01126795, 0.02135873,\n",
+              "        0.0242156 , 0.03979545, 0.01233034, 0.01775737, 0.03139477,\n",
+              "        0.05235844, 0.01387715, 0.01786885, 0.03140101, 0.0522892 ,\n",
+              "        0.0151515 , 0.01660595, 0.0355092 , 0.05546227, 0.00964584,\n",
+              "        0.01674767, 0.01515942, 0.02820253, 0.01010752, 0.01270785,\n",
+              "        0.02123985, 0.02652249, 0.01280303, 0.01638765, 0.02853079,\n",
+              "        0.08312874, 0.02182961, 0.03222103, 0.03410249, 0.04800515,\n",
+              "        0.01339145, 0.01767831, 0.03594508, 0.06253819, 0.01324754,\n",
+              "        0.01774964, 0.02822027, 0.05102134]),\n",
+              " 'std_score_time': array([0.00188038, 0.00069943, 0.00041901, 0.00386083, 0.00372918,\n",
+              "        0.00409947, 0.00378848, 0.00348552, 0.00036705, 0.0055332 ,\n",
+              "        0.000551  , 0.00127393, 0.00037178, 0.00271269, 0.00447206,\n",
+              "        0.00599313, 0.00209355, 0.00257787, 0.00344562, 0.00159954,\n",
+              "        0.00307772, 0.00048285, 0.00847241, 0.00965406, 0.00047195,\n",
+              "        0.00245468, 0.00041563, 0.00578513, 0.00080511, 0.00232669,\n",
+              "        0.0046623 , 0.00147029, 0.00250932, 0.00243409, 0.00443298,\n",
+              "        0.04362175, 0.00308161, 0.01299139, 0.00732555, 0.00061699,\n",
+              "        0.00232865, 0.00386633, 0.00597411, 0.02603738, 0.00264412,\n",
+              "        0.00387083, 0.00095458, 0.00737586]),\n",
+              " 'param_criterion': masked_array(data=['gini', 'gini', 'gini', 'gini', 'gini', 'gini', 'gini',\n",
+              "                    'gini', 'gini', 'gini', 'gini', 'gini', 'gini', 'gini',\n",
+              "                    'gini', 'gini', 'gini', 'gini', 'gini', 'gini', 'gini',\n",
+              "                    'gini', 'gini', 'gini', 'entropy', 'entropy',\n",
+              "                    'entropy', 'entropy', 'entropy', 'entropy', 'entropy',\n",
+              "                    'entropy', 'entropy', 'entropy', 'entropy', 'entropy',\n",
+              "                    'entropy', 'entropy', 'entropy', 'entropy', 'entropy',\n",
+              "                    'entropy', 'entropy', 'entropy', 'entropy', 'entropy',\n",
+              "                    'entropy', 'entropy'],\n",
+              "              mask=[False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False],\n",
+              "        fill_value='?',\n",
+              "             dtype=object),\n",
+              " 'param_max_depth': masked_array(data=[3, 3, 3, 3, 5, 5, 5, 5, 10, 10, 10, 10, 15, 15, 15, 15,\n",
+              "                    20, 20, 20, 20, 30, 30, 30, 30, 3, 3, 3, 3, 5, 5, 5, 5,\n",
+              "                    10, 10, 10, 10, 15, 15, 15, 15, 20, 20, 20, 20, 30, 30,\n",
+              "                    30, 30],\n",
+              "              mask=[False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False],\n",
+              "        fill_value='?',\n",
+              "             dtype=object),\n",
+              " 'param_n_estimators': masked_array(data=[10, 20, 50, 100, 10, 20, 50, 100, 10, 20, 50, 100, 10,\n",
+              "                    20, 50, 100, 10, 20, 50, 100, 10, 20, 50, 100, 10, 20,\n",
+              "                    50, 100, 10, 20, 50, 100, 10, 20, 50, 100, 10, 20, 50,\n",
+              "                    100, 10, 20, 50, 100, 10, 20, 50, 100],\n",
+              "              mask=[False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False,\n",
+              "                    False, False, False, False, False, False, False, False],\n",
+              "        fill_value='?',\n",
+              "             dtype=object),\n",
+              " 'params': [{'criterion': 'gini', 'max_depth': 3, 'n_estimators': 10},\n",
+              "  {'criterion': 'gini', 'max_depth': 3, 'n_estimators': 20},\n",
+              "  {'criterion': 'gini', 'max_depth': 3, 'n_estimators': 50},\n",
+              "  {'criterion': 'gini', 'max_depth': 3, 'n_estimators': 100},\n",
+              "  {'criterion': 'gini', 'max_depth': 5, 'n_estimators': 10},\n",
+              "  {'criterion': 'gini', 'max_depth': 5, 'n_estimators': 20},\n",
+              "  {'criterion': 'gini', 'max_depth': 5, 'n_estimators': 50},\n",
+              "  {'criterion': 'gini', 'max_depth': 5, 'n_estimators': 100},\n",
+              "  {'criterion': 'gini', 'max_depth': 10, 'n_estimators': 10},\n",
+              "  {'criterion': 'gini', 'max_depth': 10, 'n_estimators': 20},\n",
+              "  {'criterion': 'gini', 'max_depth': 10, 'n_estimators': 50},\n",
+              "  {'criterion': 'gini', 'max_depth': 10, 'n_estimators': 100},\n",
+              "  {'criterion': 'gini', 'max_depth': 15, 'n_estimators': 10},\n",
+              "  {'criterion': 'gini', 'max_depth': 15, 'n_estimators': 20},\n",
+              "  {'criterion': 'gini', 'max_depth': 15, 'n_estimators': 50},\n",
+              "  {'criterion': 'gini', 'max_depth': 15, 'n_estimators': 100},\n",
+              "  {'criterion': 'gini', 'max_depth': 20, 'n_estimators': 10},\n",
+              "  {'criterion': 'gini', 'max_depth': 20, 'n_estimators': 20},\n",
+              "  {'criterion': 'gini', 'max_depth': 20, 'n_estimators': 50},\n",
+              "  {'criterion': 'gini', 'max_depth': 20, 'n_estimators': 100},\n",
+              "  {'criterion': 'gini', 'max_depth': 30, 'n_estimators': 10},\n",
+              "  {'criterion': 'gini', 'max_depth': 30, 'n_estimators': 20},\n",
+              "  {'criterion': 'gini', 'max_depth': 30, 'n_estimators': 50},\n",
+              "  {'criterion': 'gini', 'max_depth': 30, 'n_estimators': 100},\n",
+              "  {'criterion': 'entropy', 'max_depth': 3, 'n_estimators': 10},\n",
+              "  {'criterion': 'entropy', 'max_depth': 3, 'n_estimators': 20},\n",
+              "  {'criterion': 'entropy', 'max_depth': 3, 'n_estimators': 50},\n",
+              "  {'criterion': 'entropy', 'max_depth': 3, 'n_estimators': 100},\n",
+              "  {'criterion': 'entropy', 'max_depth': 5, 'n_estimators': 10},\n",
+              "  {'criterion': 'entropy', 'max_depth': 5, 'n_estimators': 20},\n",
+              "  {'criterion': 'entropy', 'max_depth': 5, 'n_estimators': 50},\n",
+              "  {'criterion': 'entropy', 'max_depth': 5, 'n_estimators': 100},\n",
+              "  {'criterion': 'entropy', 'max_depth': 10, 'n_estimators': 10},\n",
+              "  {'criterion': 'entropy', 'max_depth': 10, 'n_estimators': 20},\n",
+              "  {'criterion': 'entropy', 'max_depth': 10, 'n_estimators': 50},\n",
+              "  {'criterion': 'entropy', 'max_depth': 10, 'n_estimators': 100},\n",
+              "  {'criterion': 'entropy', 'max_depth': 15, 'n_estimators': 10},\n",
+              "  {'criterion': 'entropy', 'max_depth': 15, 'n_estimators': 20},\n",
+              "  {'criterion': 'entropy', 'max_depth': 15, 'n_estimators': 50},\n",
+              "  {'criterion': 'entropy', 'max_depth': 15, 'n_estimators': 100},\n",
+              "  {'criterion': 'entropy', 'max_depth': 20, 'n_estimators': 10},\n",
+              "  {'criterion': 'entropy', 'max_depth': 20, 'n_estimators': 20},\n",
+              "  {'criterion': 'entropy', 'max_depth': 20, 'n_estimators': 50},\n",
+              "  {'criterion': 'entropy', 'max_depth': 20, 'n_estimators': 100},\n",
+              "  {'criterion': 'entropy', 'max_depth': 30, 'n_estimators': 10},\n",
+              "  {'criterion': 'entropy', 'max_depth': 30, 'n_estimators': 20},\n",
+              "  {'criterion': 'entropy', 'max_depth': 30, 'n_estimators': 50},\n",
+              "  {'criterion': 'entropy', 'max_depth': 30, 'n_estimators': 100}],\n",
+              " 'split0_test_score': array([0.43020833, 0.45104167, 0.465625  , 0.46979167, 0.45      ,\n",
+              "        0.47916667, 0.49895833, 0.51458333, 0.50104167, 0.5375    ,\n",
+              "        0.55520833, 0.55833333, 0.459375  , 0.509375  , 0.55416667,\n",
+              "        0.57291667, 0.43958333, 0.515625  , 0.57395833, 0.56354167,\n",
+              "        0.45625   , 0.51145833, 0.54791667, 0.571875  , 0.421875  ,\n",
+              "        0.41666667, 0.43645833, 0.45104167, 0.46666667, 0.49166667,\n",
+              "        0.496875  , 0.50416667, 0.48020833, 0.51041667, 0.53958333,\n",
+              "        0.565625  , 0.475     , 0.49895833, 0.56979167, 0.57083333,\n",
+              "        0.45729167, 0.490625  , 0.54791667, 0.56770833, 0.44166667,\n",
+              "        0.49895833, 0.55416667, 0.55416667]),\n",
+              " 'split1_test_score': array([0.36041667, 0.41354167, 0.41770833, 0.43125   , 0.44479167,\n",
+              "        0.475     , 0.47604167, 0.46979167, 0.45104167, 0.49583333,\n",
+              "        0.52916667, 0.53333333, 0.459375  , 0.475     , 0.53020833,\n",
+              "        0.54791667, 0.4375    , 0.50520833, 0.53229167, 0.54375   ,\n",
+              "        0.44375   , 0.478125  , 0.525     , 0.54375   , 0.38333333,\n",
+              "        0.40833333, 0.42083333, 0.421875  , 0.46458333, 0.446875  ,\n",
+              "        0.45208333, 0.478125  , 0.44166667, 0.49583333, 0.528125  ,\n",
+              "        0.525     , 0.4375    , 0.49375   , 0.50416667, 0.52604167,\n",
+              "        0.43229167, 0.49583333, 0.5125    , 0.53541667, 0.44375   ,\n",
+              "        0.47291667, 0.52916667, 0.53958333]),\n",
+              " 'split2_test_score': array([0.39375   , 0.41666667, 0.41979167, 0.41875   , 0.45208333,\n",
+              "        0.46875   , 0.471875  , 0.47395833, 0.41979167, 0.46979167,\n",
+              "        0.50520833, 0.51666667, 0.41458333, 0.48125   , 0.51458333,\n",
+              "        0.521875  , 0.44583333, 0.47604167, 0.496875  , 0.51770833,\n",
+              "        0.45104167, 0.45833333, 0.49479167, 0.52083333, 0.384375  ,\n",
+              "        0.40208333, 0.38958333, 0.41458333, 0.41875   , 0.45208333,\n",
+              "        0.45833333, 0.45729167, 0.44166667, 0.49166667, 0.50729167,\n",
+              "        0.51145833, 0.4375    , 0.48854167, 0.49791667, 0.52604167,\n",
+              "        0.43020833, 0.475     , 0.51458333, 0.515625  , 0.39583333,\n",
+              "        0.47916667, 0.50729167, 0.525     ]),\n",
+              " 'split3_test_score': array([0.42083333, 0.43020833, 0.453125  , 0.459375  , 0.459375  ,\n",
+              "        0.48020833, 0.49166667, 0.50104167, 0.46979167, 0.51875   ,\n",
+              "        0.52604167, 0.53958333, 0.453125  , 0.51354167, 0.53958333,\n",
+              "        0.565625  , 0.45      , 0.496875  , 0.52604167, 0.559375  ,\n",
+              "        0.44583333, 0.49895833, 0.52708333, 0.553125  , 0.39270833,\n",
+              "        0.42083333, 0.415625  , 0.421875  , 0.43125   , 0.46145833,\n",
+              "        0.48125   , 0.49895833, 0.45833333, 0.47916667, 0.53958333,\n",
+              "        0.55520833, 0.434375  , 0.49166667, 0.52291667, 0.54791667,\n",
+              "        0.45      , 0.51666667, 0.53854167, 0.54791667, 0.440625  ,\n",
+              "        0.49375   , 0.52395833, 0.55625   ]),\n",
+              " 'split4_test_score': array([0.38645833, 0.41979167, 0.43333333, 0.440625  , 0.43541667,\n",
+              "        0.43333333, 0.484375  , 0.46666667, 0.471875  , 0.49270833,\n",
+              "        0.51458333, 0.51875   , 0.44375   , 0.47395833, 0.50625   ,\n",
+              "        0.52916667, 0.42916667, 0.503125  , 0.52291667, 0.52291667,\n",
+              "        0.42708333, 0.49791667, 0.53645833, 0.53958333, 0.39166667,\n",
+              "        0.403125  , 0.4125    , 0.41979167, 0.42604167, 0.453125  ,\n",
+              "        0.47708333, 0.47083333, 0.45104167, 0.496875  , 0.534375  ,\n",
+              "        0.52083333, 0.44166667, 0.49791667, 0.51354167, 0.53125   ,\n",
+              "        0.446875  , 0.48854167, 0.515625  , 0.521875  , 0.45520833,\n",
+              "        0.48645833, 0.50833333, 0.53645833]),\n",
+              " 'mean_test_score': array([0.39833333, 0.42625   , 0.43791667, 0.44395833, 0.44833333,\n",
+              "        0.46729167, 0.48458333, 0.48520833, 0.46270833, 0.50291667,\n",
+              "        0.52604167, 0.53333333, 0.44604167, 0.490625  , 0.52895833,\n",
+              "        0.5475    , 0.44041667, 0.499375  , 0.53041667, 0.54145833,\n",
+              "        0.44479167, 0.48895833, 0.52625   , 0.54583333, 0.39479167,\n",
+              "        0.41020833, 0.415     , 0.42583333, 0.44145833, 0.46104167,\n",
+              "        0.473125  , 0.481875  , 0.45458333, 0.49479167, 0.52979167,\n",
+              "        0.535625  , 0.44520833, 0.49416667, 0.52166667, 0.54041667,\n",
+              "        0.44333333, 0.49333333, 0.52583333, 0.53770833, 0.43541667,\n",
+              "        0.48625   , 0.52458333, 0.54229167]),\n",
+              " 'std_test_score': array([0.02498784, 0.01360402, 0.01874537, 0.01851004, 0.00797675,\n",
+              "        0.01745033, 0.00991281, 0.01908724, 0.02676414, 0.0232308 ,\n",
+              "        0.01688657, 0.01519549, 0.01673683, 0.01724265, 0.01715938,\n",
+              "        0.01983657, 0.0071686 , 0.01313657, 0.0248991 , 0.01855688,\n",
+              "        0.00986013, 0.01866416, 0.01769485, 0.01673164, 0.01405285,\n",
+              "        0.00740683, 0.01514685, 0.01288302, 0.02013841, 0.01601052,\n",
+              "        0.01616967, 0.01748759, 0.01426133, 0.01003466, 0.01201489,\n",
+              "        0.02097245, 0.01507504, 0.00387522, 0.02551041, 0.01719728,\n",
+              "        0.01044995, 0.01354327, 0.01454459, 0.01869668, 0.0204655 ,\n",
+              "        0.00944189, 0.01708587, 0.0116294 ]),\n",
+              " 'rank_test_score': array([47, 43, 41, 37, 33, 29, 26, 25, 30, 17, 13,  8, 34, 22, 11,  1, 40,\n",
+              "        18,  9,  4, 36, 23, 12,  2, 48, 46, 45, 44, 39, 31, 28, 27, 32, 19,\n",
+              "        10,  7, 35, 20, 16,  5, 38, 21, 14,  6, 42, 24, 15,  3],\n",
+              "       dtype=int32)}"
+            ]
+          },
+          "execution_count": 36,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "clf.cv_results_"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 75
+        },
+        "id": "StOkRVYoziGK",
+        "outputId": "6b47fcbc-c291-4247-e8c0-338f7d3d7f65"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/html": [
+              "<style>#sk-container-id-1 {color: black;background-color: white;}#sk-container-id-1 pre{padding: 0;}#sk-container-id-1 div.sk-toggleable {background-color: white;}#sk-container-id-1 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-1 label.sk-toggleable__label-arrow:before {content: \"▸\";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-1 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-1 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-1 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-1 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-1 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-1 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: \"▾\";}#sk-container-id-1 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-1 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-1 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-1 div.sk-parallel-item::after {content: \"\";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-1 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-1 div.sk-serial::before {content: \"\";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-1 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-1 div.sk-item {position: relative;z-index: 1;}#sk-container-id-1 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-1 div.sk-item::before, #sk-container-id-1 div.sk-parallel-item::before {content: \"\";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-1 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-1 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-1 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-1 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-1 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-1 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-1 div.sk-label-container {text-align: center;}#sk-container-id-1 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-1 div.sk-text-repr-fallback {display: none;}</style><div id=\"sk-container-id-1\" class=\"sk-top-container\"><div class=\"sk-text-repr-fallback\"><pre>AdaBoostClassifier()</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br />On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class=\"sk-container\" hidden><div class=\"sk-item\"><div class=\"sk-estimator sk-toggleable\"><input class=\"sk-toggleable__control sk-hidden--visually\" id=\"sk-estimator-id-1\" type=\"checkbox\" checked><label for=\"sk-estimator-id-1\" class=\"sk-toggleable__label sk-toggleable__label-arrow\">AdaBoostClassifier</label><div class=\"sk-toggleable__content\"><pre>AdaBoostClassifier()</pre></div></div></div></div></div>"
+            ],
+            "text/plain": [
+              "AdaBoostClassifier()"
+            ]
+          },
+          "execution_count": 15,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "from sklearn.ensemble import AdaBoostClassifier\n",
+        "clf = AdaBoostClassifier()\n",
+        "clf.fit(X_train, y_train)\n",
+        "clf.score(X_val, y_val)\n",
+        "\n",
+        "parameters = {'criterion':('gini', 'entropy'), 'max_depth':[3, 5, 10, 15, 20, 30],\n",
+        "              'n_estimators':[10, 20, 50, 100]}\n",
+        "rfc = RandomForestClassifier()\n",
+        "clf = GridSearchCV(rfc, parameters)\n",
+        "clf.fit(X_train, y_train)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "AgryM9jSFdKI",
+        "outputId": "8d49fd50-0245-4b20-ebc5-a90beda79fad"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/plain": [
+              "0.4141666666666667"
+            ]
+          },
+          "execution_count": 16,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "clf.score(X_val, y_val)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### Outlier detection?"
+      ],
+      "metadata": {
+        "id": "2NnhOqPVWZYu"
+      }
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 74
+        },
+        "id": "GhNIn7MRFpkJ",
+        "outputId": "1976ac64-16a7-4b4f-a491-1b5c07f24f65"
+      },
+      "outputs": [
+        {
+          "data": {
+            "text/html": [
+              "<style>#sk-container-id-6 {color: black;background-color: white;}#sk-container-id-6 pre{padding: 0;}#sk-container-id-6 div.sk-toggleable {background-color: white;}#sk-container-id-6 label.sk-toggleable__label {cursor: pointer;display: block;width: 100%;margin-bottom: 0;padding: 0.3em;box-sizing: border-box;text-align: center;}#sk-container-id-6 label.sk-toggleable__label-arrow:before {content: \"▸\";float: left;margin-right: 0.25em;color: #696969;}#sk-container-id-6 label.sk-toggleable__label-arrow:hover:before {color: black;}#sk-container-id-6 div.sk-estimator:hover label.sk-toggleable__label-arrow:before {color: black;}#sk-container-id-6 div.sk-toggleable__content {max-height: 0;max-width: 0;overflow: hidden;text-align: left;background-color: #f0f8ff;}#sk-container-id-6 div.sk-toggleable__content pre {margin: 0.2em;color: black;border-radius: 0.25em;background-color: #f0f8ff;}#sk-container-id-6 input.sk-toggleable__control:checked~div.sk-toggleable__content {max-height: 200px;max-width: 100%;overflow: auto;}#sk-container-id-6 input.sk-toggleable__control:checked~label.sk-toggleable__label-arrow:before {content: \"▾\";}#sk-container-id-6 div.sk-estimator input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-6 div.sk-label input.sk-toggleable__control:checked~label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-6 input.sk-hidden--visually {border: 0;clip: rect(1px 1px 1px 1px);clip: rect(1px, 1px, 1px, 1px);height: 1px;margin: -1px;overflow: hidden;padding: 0;position: absolute;width: 1px;}#sk-container-id-6 div.sk-estimator {font-family: monospace;background-color: #f0f8ff;border: 1px dotted black;border-radius: 0.25em;box-sizing: border-box;margin-bottom: 0.5em;}#sk-container-id-6 div.sk-estimator:hover {background-color: #d4ebff;}#sk-container-id-6 div.sk-parallel-item::after {content: \"\";width: 100%;border-bottom: 1px solid gray;flex-grow: 1;}#sk-container-id-6 div.sk-label:hover label.sk-toggleable__label {background-color: #d4ebff;}#sk-container-id-6 div.sk-serial::before {content: \"\";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: 0;}#sk-container-id-6 div.sk-serial {display: flex;flex-direction: column;align-items: center;background-color: white;padding-right: 0.2em;padding-left: 0.2em;position: relative;}#sk-container-id-6 div.sk-item {position: relative;z-index: 1;}#sk-container-id-6 div.sk-parallel {display: flex;align-items: stretch;justify-content: center;background-color: white;position: relative;}#sk-container-id-6 div.sk-item::before, #sk-container-id-6 div.sk-parallel-item::before {content: \"\";position: absolute;border-left: 1px solid gray;box-sizing: border-box;top: 0;bottom: 0;left: 50%;z-index: -1;}#sk-container-id-6 div.sk-parallel-item {display: flex;flex-direction: column;z-index: 1;position: relative;background-color: white;}#sk-container-id-6 div.sk-parallel-item:first-child::after {align-self: flex-end;width: 50%;}#sk-container-id-6 div.sk-parallel-item:last-child::after {align-self: flex-start;width: 50%;}#sk-container-id-6 div.sk-parallel-item:only-child::after {width: 0;}#sk-container-id-6 div.sk-dashed-wrapped {border: 1px dashed gray;margin: 0 0.4em 0.5em 0.4em;box-sizing: border-box;padding-bottom: 0.4em;background-color: white;}#sk-container-id-6 div.sk-label label {font-family: monospace;font-weight: bold;display: inline-block;line-height: 1.2em;}#sk-container-id-6 div.sk-label-container {text-align: center;}#sk-container-id-6 div.sk-container {/* jupyter's `normalize.less` sets `[hidden] { display: none; }` but bootstrap.min.css set `[hidden] { display: none !important; }` so we also need the `!important` here to be able to override the default hidden behavior on the sphinx rendered scikit-learn.org. See: https://github.com/scikit-learn/scikit-learn/issues/21755 */display: inline-block !important;position: relative;}#sk-container-id-6 div.sk-text-repr-fallback {display: none;}</style><div id=\"sk-container-id-6\" class=\"sk-top-container\"><div class=\"sk-text-repr-fallback\"><pre>OneClassSVM(kernel=&#x27;poly&#x27;)</pre><b>In a Jupyter environment, please rerun this cell to show the HTML representation or trust the notebook. <br />On GitHub, the HTML representation is unable to render, please try loading this page with nbviewer.org.</b></div><div class=\"sk-container\" hidden><div class=\"sk-item\"><div class=\"sk-estimator sk-toggleable\"><input class=\"sk-toggleable__control sk-hidden--visually\" id=\"sk-estimator-id-10\" type=\"checkbox\" checked><label for=\"sk-estimator-id-10\" class=\"sk-toggleable__label sk-toggleable__label-arrow\">OneClassSVM</label><div class=\"sk-toggleable__content\"><pre>OneClassSVM(kernel=&#x27;poly&#x27;)</pre></div></div></div></div></div>"
+            ],
+            "text/plain": [
+              "OneClassSVM(kernel='poly')"
+            ]
+          },
+          "execution_count": 45,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ],
+      "source": [
+        "from sklearn.svm import OneClassSVM\n",
+        "outlierclf = OneClassSVM(kernel='poly')\n",
+        "outlierclf.fit(X_train, y_train)\n",
+        "a = outlierclf.predict(X_train)\n",
+        "collections.Counter(a)\n",
+        "a = outlierclf.predict(X_train)\n",
+        "collections.Counter(a)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "background_save": true
+        },
+        "id": "JUQGKCRspiNE"
+      },
+      "outputs": [],
+      "source": [
+        "from sklearn.gaussian_process import GaussianProcessClassifier\n",
+        "from sklearn.gaussian_process.kernels import RBF\n",
+        "kernel = 1.0 * RBF(1.0)\n",
+        "gpc = GaussianProcessClassifier(kernel=kernel, random_state=0).fit(X_train, y_train)"
+      ]
+    }
+  ],
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyOl359kznpW4HCttD0mtIIK",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "display_name": "Python 3",
+      "name": "python3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
