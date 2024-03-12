@@ -1,0 +1,1 @@
+[{"metric": "cosine", "n_neighbors": 21, "val_score": 0.5016666666666667}, {"metric": "cosine", "n_neighbors": 42, "val_score": 0.47333333333333333}, {"metric": "cosine", "n_neighbors": 33, "val_score": 0.5483333333333333}]
