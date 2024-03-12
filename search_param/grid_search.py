@@ -50,7 +50,7 @@ def rand_search(model, params, x, y, x_val, y_val, cv=5, n=20):
 
     # fit grid search CV
     scorer = make_scorer(zero_one_loss, greater_is_better=False)
-    search = RandomizedSearchCV(model, param_grid=params, cv=cv, scoring=scorer, n_iter=n,
+    search = RandomizedSearchCV(model, param_distributions=params, cv=cv, scoring=scorer, n_iter=n,
                                 n_jobs=-1, verbose=10, random_state=42)
     search.fit(x, y)
 

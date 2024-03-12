@@ -13,8 +13,8 @@ y_val = y_val[0].values
 
 # apply grid search
 param_grid = {'criterion': ['gini', 'entropy', 'log_loss'],
-              'max_depth':[3, 5, 10, 15, 20, 30],
-              'n_estimators':[10, 20, 50, 100, 200]}
+              'max_depth': [3, 5, 10, 15, 20, 30],
+              'n_estimators': [10, 20, 50, 100, 200]}
 
 rfc = RandomForestClassifier()
 sc_best = grid_search(rfc, param_grid, X_train_sc, y_train, X_val_sc, y_val)
