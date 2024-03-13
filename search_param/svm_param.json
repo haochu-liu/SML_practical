@@ -1,0 +1,1 @@
+{"scaler": {"classifier__C": 10, "classifier__gamma": "scale", "classifier__kernel": "rbf", "val_score": 0.6158333333333333}, "pca": {"classifier__C": 1, "classifier__gamma": "scale", "classifier__kernel": "rbf", "val_score": 0.5341666666666667}, "lda": {"classifier__C": 0.1, "classifier__gamma": "scale", "classifier__kernel": "rbf", "val_score": 0.5616666666666666}}
