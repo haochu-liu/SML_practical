@@ -1,0 +1,1 @@
+{"scaler": {"classifier__C": 0.01, "classifier__l1_ratio": 0, "val_score": 0.5675}, "pca": {"classifier__C": 0.01, "classifier__l1_ratio": 0, "val_score": 0.4675}, "lda": {"classifier__C": 1, "classifier__l1_ratio": 0, "val_score": 0.5491666666666667}}

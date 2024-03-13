@@ -1,0 +1,1 @@
+{"scaler": {"classifier__algorithm": "SAMME", "classifier__n_estimators": 117, "val_score": 0.44916666666666666}, "pca": {"classifier__algorithm": "SAMME.R", "classifier__n_estimators": 95, "val_score": 0.3958333333333333}, "lda": {"classifier__algorithm": "SAMME", "classifier__n_estimators": 98, "val_score": 0.5183333333333333}}

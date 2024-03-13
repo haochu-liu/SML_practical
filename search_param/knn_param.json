@@ -1,0 +1,1 @@
+{"scaler": {"classifier__metric": "cosine", "classifier__n_neighbors": 19, "val_score": 0.505}, "pca": {"classifier__metric": "cosine", "classifier__n_neighbors": 18, "val_score": 0.4716666666666667}, "lda": {"classifier__metric": "cosine", "classifier__n_neighbors": 39, "val_score": 0.5541666666666667}}
