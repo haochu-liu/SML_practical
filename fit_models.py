@@ -38,6 +38,6 @@ def fit_model(model, path, param_key, X_train, y_train, X_val, y_val):
     y_val_pred = model.predict(X_val)
     val_acc = accuracy_score(y_val, y_val_pred)
 
-    return training_time, train_acc, test_acc, y_train_pred, y_val_pred
+    return [training_time, train_acc, val_acc], y_train_pred, y_val_pred
 
 
