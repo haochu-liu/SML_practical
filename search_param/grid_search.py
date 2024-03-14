@@ -115,3 +115,21 @@ def read_data():
     return X_train, X_val, y_train, y_val
 
 
+def decode_dict(original_dict):
+    """
+    original_dict: the original dictionary for pipeline
+    """
+
+    # Create a new dictionary to store the modified keys and values
+    new_dict = {}
+
+    # Iterate over the keys of the original dictionary
+    for key, value in original_dict.items():
+        # Remove the prefix 'classifier__' from the key
+        new_key = key.replace('classifier__', '')
+        # Add the modified key and its corresponding value to the new dictionary
+        new_dict[new_key] = value
+    
+    return new_dict
+
+
