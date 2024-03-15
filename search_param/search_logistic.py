@@ -10,10 +10,10 @@ from grid_search import read_data, grid_search, rand_search, pipeline_search
 X_train, X_val, y_train, y_val = read_data()
 
 # set the grid
-param_grid = {'classifier__l1_ratio': [0, 0.001, 0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.99, 0.999, 1],
+param_grid = {'classifier__l1_ratio': [0, 0.01, 0.1, 0.3, 0.5, 0.7, 0.9, 0.99, 1],
               'classifier__C': [0.01, 0.1, 1, 10, 100]}
 
-logistic = LogisticRegression()
+logistic = LogisticRegression(penalty='elasticnet', solver='saga')
 # get pipelines
 scaler_pipe = pipeline_search(logistic)
 pca_pipe = pipeline_search(logistic, process='PCA')

@@ -1,1 +1,1 @@
-{"scaler": {"classifier__C": 0.01, "classifier__l1_ratio": 0, "val_score": 0.5675}, "pca": {"classifier__C": 0.01, "classifier__l1_ratio": 0, "val_score": 0.4675}, "lda": {"classifier__C": 1, "classifier__l1_ratio": 0, "val_score": 0.5491666666666667}}
+{"scaler": {"classifier__C": 0.1, "classifier__l1_ratio": 0.5, "val_score": 0.5741666666666667}, "pca": {"classifier__C": 0.01, "classifier__l1_ratio": 0, "val_score": 0.4658333333333333}, "lda": {"classifier__C": 1, "classifier__l1_ratio": 0, "val_score": 0.5491666666666667}}
